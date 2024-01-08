@@ -9,14 +9,15 @@ from constants import (
     THUMBNAILS_BUCKET,
 )
 from openai_client.main import parseResume
-from routers.resume.schemas import ResumeData
+from routers.resume.schemas import AwardRequest, CertificationRequest, EducationRequest, LanguageRequest, ProjectExperienceRequest, ReferencesRequest, ResumeData, ResumeRequest, SkilRequest, WorkExperienceRequest
 from supabase_client.main import get_storage_bucket, supabase_client
 from unstructured.partition.pdf import partition_pdf
 from pdf2image import convert_from_bytes
 from PIL.Image import Image
 
 from exception import UnicornException
-from supabase_client.table_names import RESUME_TABLE_NAME
+from supabase_client.table_names import * 
+from sentence_transformers import SentenceTransformer
 
 
 def validate_file(file: UploadFile):
@@ -73,7 +74,7 @@ def get_resume_content(resume_file: BinaryIO):
     return resume_content
 
 
-def extract_resume(resume_content: str):
+def extract_resume(resume_content: str) -> ResumeData:
     if not resume_content:
         raise UnicornException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -128,41 +129,111 @@ def upload_resume_file(resume: bytes, fodler_id: int, resume_file_hash: str):
     return file_path
 
 
-def save_resume(
-    resume_thumbnail_url: str,
-    resume_file_hash: str,
-    resume_file_path: str,
-    resume_content: str,
-    resume_embedding: List[float],
-    folder_id: str,
-    job_title: str,
-    job_title_embedding: List[float],
-    summary_or_objectives: str,
-    full_name: str,
-    emai: str,
-    phone_number: str,
-    address: str,
-    tolal_years_experience: int,
-):
-    supabase_client.table(RESUME_TABLE_NAME).insert(
+def save_resume(request: ResumeRequest):
+    data, count = supabase_client.table(RESUME_TABLE_NAME).insert(
         {
-            "resume_thumbnail_url": resume_thumbnail_url,
-            "resume_file_hash": resume_file_hash,
-            "resume_file_path": resume_file_path,
-            "resume_content": resume_content,
-            "resume_embedding": resume_embedding,
-            "folder_id": folder_id,
-            "job_title": job_title,
-            "job_title_embedding": job_title_embedding,
-            "summary_or_objectives": summary_or_objectives,
-            "full_name": full_name,
-            "emai": emai,
-            "phone_number": phone_number,
-            "address": address,
-            "tolal_years_experience": tolal_years_experience,
+            "resume_thumbnail_url": request.resume_thumbnail_url,
+            "resume_file_hash": request.resume_file_hash,
+            "resume_file_path": request.resume_file_path,
+            "folder_id": request.folder_id,
+            "job_title": request.job_title,
+            "job_title_embedding": request.job_title_embedding,
+            "summary_or_objectives": request.summary_or_objectives,
+            "full_name": request.full_name,
+            "email": request.email,
+            "phone_number": request.phone_number,
+            "address": request.address,
+            "tolal_years_experience": request.tolal_years_experience,
+            "folder_id": request.folder_id
+        }
+    ).execute()
+    return data[1][0]['resume_id']
+
+def save_reference(request: ReferencesRequest):
+    supabase_client.table(RESUME_REFERENCE_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "reference_link": request.reference_link,
         }
     ).execute()
 
+def save_award(request: AwardRequest):
+    supabase_client.table(RESUME_AWARD_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "title": request.title,
+            "award_title_embedding": request.award_title_embedding,
+            "date": request.date,
+        }
+    ).execute()
+
+def save_certification(request: CertificationRequest):
+    supabase_client.table(RESUME_CERTIFICATION_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "title": request.title,
+            "certification_embedding": request.certification_embedding,
+            "date": request.date,
+        }
+    ).execute()
+
+def save_education(request: EducationRequest):
+    supabase_client.table(RESUME_EDUCATION_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "name": request.name,
+            "title": request.title,
+            "education_title_embedding": request.education_title_embedding,
+            "start_date": request.start_date,
+            "end_date": request.end_date,
+            "gpa": request.gpa,
+        }
+    ).execute()
+
+def save_language(request: LanguageRequest):
+    supabase_client.table(RESUME_LANGUAGE_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "language_name": request.language_name,
+            "language_name_embedding": request.language_name_embedding
+        }
+    ).execute()
+
+def save_project_experience(request: ProjectExperienceRequest):
+    supabase_client.table(RESUME_PROJECT_EXPERIENCE_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "project_name": request.project_name,
+            "project_description": request.project_description,
+            "project_technologies": request.project_technologies,
+            "responsibilities": request.responsibilities,
+            "repository_url": request.repository_url,
+            "demo_or_live_url": request.demo_or_live_url,
+            "start_date": request.start_date,
+            "end_date": request.end_date,
+        }
+    ).execute()
+
+def save_skill(request: SkilRequest):
+    supabase_client.table(RESUME_SKILL_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "skill_name": request.skill_name,
+            "skill_name_embedding": request.skill_name_embedding
+        }
+    ).execute()
+
+def save_work_experience(request: WorkExperienceRequest):
+    supabase_client.table(RESUME_WORK_EXPERIENCE_TABLE_NAME).insert(
+        {
+            "resume_id": request.resume_id,
+            "job_title": request.job_title,
+            "job_sumary": request.job_sumary,
+            "company_name": request.company_name,
+            "start_date": request.start_date,
+            "end_date": request.end_date,
+        }
+    ).execute()
 
 def semantic_filter_resumes(year_query_embedding: List[float]):
     result = supabase_client.rpc(
@@ -176,3 +247,8 @@ def semantic_filter_resumes(year_query_embedding: List[float]):
     print(result)
 
     return result
+
+def embedding(text: str):
+    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+    embedding = model.encode(text)
+    return embedding.tolist()

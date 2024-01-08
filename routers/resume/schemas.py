@@ -61,3 +61,70 @@ class ResumeData(BaseModel):
     educations: List[Educations] | None = None
     workExperiences: List[WorkExperiences] | None = None
     projectExperiences: List[ProjectExperiences] | None = None
+
+class ResumeRequest(BaseModel):
+    resume_thumbnail_url: str
+    resume_file_hash: str
+    resume_file_path: str
+    folder_id: str
+    job_title: str
+    job_title_embedding: List[float]
+    summary_or_objectives: str
+    full_name: str
+    email: str
+    phone_number: str
+    address: str
+    tolal_years_experience: int
+
+class ReferencesRequest(BaseModel):
+    resume_id: str
+    reference_link: str 
+
+class AwardRequest(BaseModel):
+    resume_id: str
+    title: str
+    award_title_embedding: List[float]
+    date: str
+
+class CertificationRequest(BaseModel):
+    resume_id: str  
+    title: str
+    certification_embedding: List[float]
+    date: str
+
+class EducationRequest(BaseModel):
+    resume_id: str
+    name: str
+    education_name_embedding: List[float]
+    start_date: str
+    end_date: str
+    gpa: float
+
+class LanguageRequest(BaseModel):
+    resume_id: str
+    language_name: str
+    language_name_embedding: List[float]
+
+class ProjectExperienceRequest(BaseModel):
+    resume_id: str
+    project_name: str
+    project_description: str
+    project_technologies: str
+    responsibilities: str
+    repository_url: str
+    demo_or_live_url: str
+    start_date: str
+    end_date: str
+
+class SkilRequest(BaseModel):
+    resume_id: str
+    skill_name: str
+    skill_name_embedding: List[float]
+
+class WorkExperienceRequest(BaseModel):
+    resume_id: str
+    job_title: str
+    job_sumary: str
+    company_name: str
+    start_date: str
+    end_date: str

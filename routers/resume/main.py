@@ -2,24 +2,12 @@ from typing import List
 from fastapi import APIRouter, UploadFile, status
 from exception import UnicornException
 from openai_client.main import get_embedding
+from routers.resume.schemas import AwardRequest, ReferencesRequest, ResumeRequest
 from tags import RESUME_TAG
-from routers.resume.services import (
-    calculate_hash,
-    convert_img_to_bytes,
-    extract_resume,
-    find_resume_by_hash,
-    generate_thumbnails,
-    get_resume_content,
-    save_resume,
-    semantic_filter_resumes,
-    upload_thumbnail,
-    upload_resume_file,
-    validate_file,
-)
+from routers.resume.services import *
 
 
 resumeRouter = APIRouter(prefix="/resume")
-
 
 @resumeRouter.post("/upload", tags=[RESUME_TAG])
 async def upload_resume(resume: UploadFile, fodler_id: str):
@@ -52,21 +40,132 @@ async def upload_resume(resume: UploadFile, fodler_id: str):
     resume_content = get_resume_content(resume.file)
     resume_data = extract_resume(resume_content)
 
-    save_resume(
-        resume_content=resume_content,
-        resume_file_hash=resume_hash,
-        resume_file_path=resume_file_path,
-        resume_thumbnail_url=thumbnail_url,
-        folder_id=fodler_id,
-        job_title=resume_data.basicInfo.jobTitle,
-        # job_title_embedding= resume_data.basicInfo.,
-        # summary_or_objectives=str,
-        # full_name=str,
-        # emai=str,
-        # phone_number=str,
-        # address=str,
-        # tolal_years_experience=int,
+    # save resume
+    resume_request = ResumeRequest(
+        resume_content = resume_content,
+        resume_file_hash = resume_hash,
+        resume_file_path = resume_file_path,
+        resume_thumbnail_url = thumbnail_url,
+        folder_id = fodler_id,
+        job_title = resume_data.basicInfo.jobTitle,
+        job_title_embedding =  embedding(resume_data.basicInfo.jobTitle),
+        summary_or_objectives = resume_data.basicInfo.summaryOrObjectives,
+        full_name = resume_data.basicInfo.fullName,
+        emai = resume_data.basicInfo.email,
+        phone_number = resume_data.basicInfo.phoneNumber,
+        address = resume_data.basicInfo.address
     )
+    resume_id = save_resume(resume_request)
+
+    # save reference
+    if resume_data.basicInfo.linkedInMainPageUrl:
+        reference_request = ReferencesRequest(
+            resume_id=resume_id,
+            reference_link = resume_data.basicInfo.linkedInMainPageUrl
+        )
+        save_reference(reference_request)
+    
+    if resume_data.basicInfo.githubMainPageUrl:
+        reference_request = ReferencesRequest(
+            resume_id=resume_id,
+            reference_link = resume_data.basicInfo.githubMainPageUrl
+        )
+        save_reference(reference_request)
+    
+    if resume_data.basicInfo.portfolioMainPageUrl:
+        reference_request = ReferencesRequest(
+            resume_id=resume_id,
+            reference_link = resume_data.basicInfo.portfolioMainPageUrl
+        )
+        save_reference(reference_request)
+
+    # save award
+    if resume_data.awards:
+        for item in resume_data.awards:
+            award_request = AwardRequest(
+                resume_id = resume_id,
+                title = item.title,
+                award_title_embedding = embedding(item.title),
+                date = item.date,
+            )
+            save_award(award_request)
+
+    # save certifications
+    if resume_data.certifications:
+        for item in resume_data.certifications:
+            certification_request = CertificationRequest(
+                resume_id = resume_id,
+                title = item.title,
+                certification_embedding = embedding(item.title),
+                date = item.date
+            )
+            save_certification(certification_request)
+    
+    # save educations
+    if resume_data.educations:
+        for item in resume_data.educations:
+            education_request = EducationRequest(
+                resume_id = resume_id,
+                name = item.educationName,
+                education_name_embedding = embedding(item.educationName),
+                start_date = item.startDate,
+                end_date = item.endDate,
+                gpa = item.gpa
+            )
+            save_education(education_request)
+        
+    # save workExperiences
+    if resume_data.workExperiences:
+        for item in resume_data.workExperiences:
+            workExperiences_request = WorkExperienceRequest(
+                resume_id = resume_id,
+                job_title = item.jobTitle,
+                job_sumary = item.jobSumary,
+                company_name = item.companyName,
+                start_date = item.startDate,
+                end_date = item.endDate,
+            )
+        save_work_experience(workExperiences_request)
+
+    # save language
+    if resume_data.languages:
+        for item in resume_data.languages:
+            language_request = LanguageRequest(
+                resume_id = resume_id,
+                language_name = item,
+                language_name_embedding = embedding(item)
+            )
+            save_language(language_request)
+
+    # save project experience
+    if resume_data.projectExperiences:
+        for item in resume_data.projectExperiences:
+            projectExperiences_request = ProjectExperienceRequest(
+                resume_id = resume_id,
+                project_name = item.projectName,
+                project_description = item.description,
+                project_technologies = item.technologies,
+                responsibilities = item.responsibilities,
+                repository_url = item.repositoryUrl,
+                demo_or_live_url = item.demoOrLiveUrl,
+                start_date = item.startDate,
+                end_date = item.endDate,
+            )
+            save_project_experience(projectExperiences_request)
+        
+    # save skill
+    if resume_data.skills:
+        for item in resume_data.skills:
+            skill_request = SkilRequest(
+                resume_id = resume_id,
+                skill_name = item,
+                skill_name_embedding = embedding(item),
+            )
+            save_skill(skill_request)
+
+
+    
+
 
 
 # @resumeRouter.get("/filter", tags=[RESUME_TAG])
