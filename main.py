@@ -4,7 +4,11 @@ from fastapi.responses import JSONResponse
 
 from exception import UnicornException
 
+from routers.resume.main import resumeRouter
+
 app = FastAPI()
+
+app.include_router(resumeRouter)
 
 
 @app.exception_handler(UnicornException)
