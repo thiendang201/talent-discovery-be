@@ -9,14 +9,25 @@ from constants import (
     THUMBNAILS_BUCKET,
 )
 from openai_client.main import parseResume
-from routers.resume.schemas import AwardRequest, CertificationRequest, EducationRequest, LanguageRequest, ProjectExperienceRequest, ReferencesRequest, ResumeData, ResumeRequest, SkilRequest, WorkExperienceRequest
+from routers.resume.schemas import (
+    AwardRequest,
+    CertificationRequest,
+    EducationRequest,
+    LanguageRequest,
+    ProjectExperienceRequest,
+    ReferencesRequest,
+    ResumeData,
+    ResumeRequest,
+    SkilRequest,
+    WorkExperienceRequest,
+)
 from supabase_client.main import get_storage_bucket, supabase_client
 from unstructured.partition.pdf import partition_pdf
 from pdf2image import convert_from_bytes
 from PIL.Image import Image
 
 from exception import UnicornException
-from supabase_client.table_names import * 
+from supabase_client.table_names import *
 from sentence_transformers import SentenceTransformer
 
 
@@ -91,7 +102,7 @@ def extract_resume(resume_content: str) -> ResumeData:
             type="file.not.resume",
         )
 
-    return ResumeData.model_validate_json(res)
+    return ResumeData.model_validate_json(res.replace("```json", "").replace("```", ""))
 
 
 def generate_thumbnails(pdf: bytes, firstPage=0, lastPage=1):
@@ -130,24 +141,29 @@ def upload_resume_file(resume: bytes, fodler_id: int, resume_file_hash: str):
 
 
 def save_resume(request: ResumeRequest):
-    data, count = supabase_client.table(RESUME_TABLE_NAME).insert(
-        {
-            "resume_thumbnail_url": request.resume_thumbnail_url,
-            "resume_file_hash": request.resume_file_hash,
-            "resume_file_path": request.resume_file_path,
-            "folder_id": request.folder_id,
-            "job_title": request.job_title,
-            "job_title_embedding": request.job_title_embedding,
-            "summary_or_objectives": request.summary_or_objectives,
-            "full_name": request.full_name,
-            "email": request.email,
-            "phone_number": request.phone_number,
-            "address": request.address,
-            "tolal_years_experience": request.tolal_years_experience,
-            "folder_id": request.folder_id
-        }
-    ).execute()
-    return data[1][0]['resume_id']
+    data, count = (
+        supabase_client.table(RESUME_TABLE_NAME)
+        .insert(
+            {
+                "resume_thumbnail_url": request.resume_thumbnail_url,
+                "resume_file_hash": request.resume_file_hash,
+                "resume_file_path": request.resume_file_path,
+                "folder_id": request.folder_id,
+                "job_title": request.job_title,
+                "job_title_embedding": request.job_title_embedding,
+                "summary_or_objectives": request.summary_or_objectives,
+                "full_name": request.full_name,
+                "email": request.email,
+                "phone_number": request.phone_number,
+                "address": request.address,
+                "tolal_years_experience": request.tolal_years_experience,
+                "folder_id": request.folder_id,
+            }
+        )
+        .execute()
+    )
+    return data[1][0]["resume_id"]
+
 
 def save_reference(request: ReferencesRequest):
     supabase_client.table(RESUME_REFERENCE_TABLE_NAME).insert(
@@ -156,6 +172,7 @@ def save_reference(request: ReferencesRequest):
             "reference_link": request.reference_link,
         }
     ).execute()
+
 
 def save_award(request: AwardRequest):
     supabase_client.table(RESUME_AWARD_TABLE_NAME).insert(
@@ -167,6 +184,7 @@ def save_award(request: AwardRequest):
         }
     ).execute()
 
+
 def save_certification(request: CertificationRequest):
     supabase_client.table(RESUME_CERTIFICATION_TABLE_NAME).insert(
         {
@@ -177,27 +195,29 @@ def save_certification(request: CertificationRequest):
         }
     ).execute()
 
+
 def save_education(request: EducationRequest):
     supabase_client.table(RESUME_EDUCATION_TABLE_NAME).insert(
         {
             "resume_id": request.resume_id,
             "name": request.name,
-            "title": request.title,
-            "education_title_embedding": request.education_title_embedding,
+            "education_name_embedding": request.education_name_embedding,
             "start_date": request.start_date,
             "end_date": request.end_date,
             "gpa": request.gpa,
         }
     ).execute()
 
+
 def save_language(request: LanguageRequest):
     supabase_client.table(RESUME_LANGUAGE_TABLE_NAME).insert(
         {
             "resume_id": request.resume_id,
             "language_name": request.language_name,
-            "language_name_embedding": request.language_name_embedding
+            "language_name_embedding": request.language_name_embedding,
         }
     ).execute()
+
 
 def save_project_experience(request: ProjectExperienceRequest):
     supabase_client.table(RESUME_PROJECT_EXPERIENCE_TABLE_NAME).insert(
@@ -214,14 +234,16 @@ def save_project_experience(request: ProjectExperienceRequest):
         }
     ).execute()
 
+
 def save_skill(request: SkilRequest):
     supabase_client.table(RESUME_SKILL_TABLE_NAME).insert(
         {
             "resume_id": request.resume_id,
             "skill_name": request.skill_name,
-            "skill_name_embedding": request.skill_name_embedding
+            "skill_name_embedding": request.skill_name_embedding,
         }
     ).execute()
+
 
 def save_work_experience(request: WorkExperienceRequest):
     supabase_client.table(RESUME_WORK_EXPERIENCE_TABLE_NAME).insert(
@@ -234,6 +256,7 @@ def save_work_experience(request: WorkExperienceRequest):
             "end_date": request.end_date,
         }
     ).execute()
+
 
 def semantic_filter_resumes(year_query_embedding: List[float]):
     result = supabase_client.rpc(
@@ -248,7 +271,8 @@ def semantic_filter_resumes(year_query_embedding: List[float]):
 
     return result
 
+
 def embedding(text: str):
-    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
     embedding = model.encode(text)
     return embedding.tolist()

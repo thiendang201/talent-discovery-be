@@ -4,9 +4,9 @@ from pydantic import BaseModel
 
 
 class BasicInfo(BaseModel):
-    fullName: str
-    email: str
-    phoneNumber: str
+    fullName: str | None = None
+    email: str | None = None
+    phoneNumber: str | None = None
     address: str | None = None
     linkedInMainPageUrl: str | None = None
     githubMainPageUrl: str | None = None
@@ -16,44 +16,44 @@ class BasicInfo(BaseModel):
 
 
 class Award(BaseModel):
-    title: str
-    date: Date | None = None
+    title: str | None = None
+    date: str | None = None
 
 
 class Certifications(BaseModel):
-    title: str
-    date: Date | None = None
+    title: str | None = None
+    date: str | None = None
 
 
 class Educations(BaseModel):
-    educationName: str
-    startDate: Date | None = None
-    endDate: Date | None = None
+    educationName: str | None = None
+    startDate: str | None = None
+    endDate: str | None = None
     major: str | None = None
     gpa: float | None = None
 
 
 class WorkExperiences(BaseModel):
-    companyName: str
+    companyName: str | None = None
     jobTitle: str | None = None
     jobSumary: str | None = None
-    startDate: Date | None = None
-    endDate: Date | None = None
+    startDate: str | None = None
+    endDate: str | None = None
 
 
 class ProjectExperiences(BaseModel):
-    projectName: str
+    projectName: str | None = None
     description: str | None = None
     technologies: str | None = None
     responsibilities: str | None = None
-    startDate: Date
-    endDate: Date | None = None
+    startDate: str | None = None
+    endDate: str | None = None
     repositoryUrl: str | None = None
     demoOrLiveUrl: str | None = None
 
 
 class ResumeData(BaseModel):
-    basicInfo: BasicInfo
+    basicInfo: BasicInfo | None = None
     skills: List[str] | None = None
     languages: List[str] | None = None
     awards: List[Award] | None = None
@@ -62,69 +62,78 @@ class ResumeData(BaseModel):
     workExperiences: List[WorkExperiences] | None = None
     projectExperiences: List[ProjectExperiences] | None = None
 
+
 class ResumeRequest(BaseModel):
-    resume_thumbnail_url: str
-    resume_file_hash: str
-    resume_file_path: str
-    folder_id: str
-    job_title: str
+    resume_thumbnail_url: str | None = None
+    resume_file_hash: str | None = None
+    resume_file_path: str | None = None
+    folder_id: str | None = None
+    job_title: str | None = None
     job_title_embedding: List[float]
-    summary_or_objectives: str
-    full_name: str
-    email: str
-    phone_number: str
-    address: str
+    summary_or_objectives: str | None = None
+    full_name: str | None = None
+    email: str | None = None
+    phone_number: str | None = None
+    address: str | None = None
     tolal_years_experience: int
 
+
 class ReferencesRequest(BaseModel):
-    resume_id: str
-    reference_link: str 
+    resume_id: str | None = None
+    reference_link: str | None = None
+
 
 class AwardRequest(BaseModel):
-    resume_id: str
-    title: str
+    resume_id: str | None = None
+    title: str | None = None
     award_title_embedding: List[float]
-    date: str
+    date: str | None = None
+
 
 class CertificationRequest(BaseModel):
-    resume_id: str  
-    title: str
+    resume_id: str | None = None
+    title: str | None = None
     certification_embedding: List[float]
-    date: str
+    date: str | None = None
+
 
 class EducationRequest(BaseModel):
-    resume_id: str
-    name: str
+    resume_id: str | None = None
+    name: str | None = None
     education_name_embedding: List[float]
-    start_date: str
-    end_date: str
-    gpa: float
+    start_date: str | None = None
+    end_date: str | None = None
+    gpa: float | None = None
+
 
 class LanguageRequest(BaseModel):
-    resume_id: str
-    language_name: str
+    resume_id: str | None = None
+    language_name: str | None = None
     language_name_embedding: List[float]
 
+
 class ProjectExperienceRequest(BaseModel):
-    resume_id: str
-    project_name: str
-    project_description: str
-    project_technologies: str
-    responsibilities: str
-    repository_url: str
-    demo_or_live_url: str
-    start_date: str
-    end_date: str
+    resume_id: str | None = None
+    project_name: str | None = None
+    project_description: str | None = None
+    project_technologies: str | None = None
+    responsibilities: str | None = None
+    repository_url: str | None = None
+    demo_or_live_url: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+
 
 class SkilRequest(BaseModel):
-    resume_id: str
-    skill_name: str
+    resume_id: str | None = None
+    skill_name: str | None = None
     skill_name_embedding: List[float]
 
+
 class WorkExperienceRequest(BaseModel):
-    resume_id: str
-    job_title: str
-    job_sumary: str
-    company_name: str
-    start_date: str
-    end_date: str
+    resume_id: str | None = None
+    job_title: str | None = None
+    job_sumary: str | None = None
+    company_name: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
