@@ -1,6 +1,5 @@
 FOLDER_TABLE_NAME = "folders"
 RESUME_TABLE_NAME = "resumes"
-RESUME_TABLE_NAME = "resumes"
 RESUME_REFERENCE_TABLE_NAME = "resume_references"
 RESUME_AWARD_TABLE_NAME = "resume_awards"
 RESUME_CERTIFICATION_TABLE_NAME = "resume_certifications"
