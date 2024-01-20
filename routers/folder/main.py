@@ -8,7 +8,7 @@ import math
 
 from tags import FOLDER_TAG
 
-from .schemas import NewFolderSchema, UpdateFolderNameSchema
+from .schemas import NewFolderSchema, RemoveFolderSchema, UpdateFolderNameSchema
 
 
 folderRouter = APIRouter(prefix="/folder")
@@ -18,14 +18,14 @@ folderRouter = APIRouter(prefix="/folder")
     "/all",
     tags=[FOLDER_TAG],
 )
-async def get_folder_list(page_params: PageParams = Depends(), search_Value: str = ""):
+async def get_folder_list(page_params: PageParams = Depends(), search_value: str = ""):
     start = (page_params.page - 1) * page_params.size
     end = start + page_params.size
 
     data, count = (
         supabase_client.table(FOLDER_TABLE_NAME)
         .select("*", count="exact")
-        .ilike("folder_name", f"%{search_Value}%")
+        .ilike("folder_name", f"%{search_value}%")
         .range(start, end)
     ).execute()
 
@@ -50,7 +50,7 @@ async def create_folder(folder: NewFolderSchema):
     ).execute()
 
 
-@folderRouter.post("/remove", tags=[FOLDER_TAG])
+@folderRouter.delete("/remove/{folder_id}", tags=[FOLDER_TAG])
 async def removeFolder(folder_id: str):
     supabase_client.table(FOLDER_TABLE_NAME).delete().eq(
         "folder_id", folder_id
@@ -67,7 +67,8 @@ def remove_folder_files(bucket_name: str, folder_id: str):
         f"{folder_path}/{file['name']}" for file in bucket.list(folder_path)
     ]
 
-    bucket.remove(all_file_paths)
+    if len(all_file_paths) > 0:
+        bucket.remove(all_file_paths)
 
 
 @folderRouter.patch("/update", tags=[FOLDER_TAG])
