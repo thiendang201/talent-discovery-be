@@ -8,7 +8,7 @@ import math
 
 from tags import FOLDER_TAG
 
-from .schemas import NewFolderSchema, RemoveFolderSchema, UpdateFolderNameSchema
+from .schemas import NewFolderSchema, UpdateFolderNameSchema
 
 
 folderRouter = APIRouter(prefix="/folder")

@@ -11,7 +11,7 @@ resumeRouter = APIRouter(prefix="/resume")
 
 
 @resumeRouter.post("/upload", tags=[RESUME_TAG])
-async def upload_resume(resume: UploadFile, fodler_id: str):
+async def upload_resume(resume: UploadFile, folder_id: str):
     isValid, error = validate_file(resume)
 
     if not isValid:
@@ -29,26 +29,26 @@ async def upload_resume(resume: UploadFile, fodler_id: str):
             data=duplicated_resume,
         )
 
-    # process thumbnail
-    thumbnails = generate_thumbnails(pdf=resume_bytes)
-    thumbnail_bytes = convert_img_to_bytes(thumbnails[0])
-    thumbnail_url = upload_thumbnail(thumbnail_bytes, fodler_id, resume_hash)
-
-    # upload resume file
-    resume_file_path = upload_resume_file(resume_bytes, fodler_id, resume_hash)
-
     # parse and save resume data
     resume_content = get_resume_content(resume.file)
     resume_data = extract_resume(resume_content)
 
     print("resume_data", resume_data)
 
+    # process thumbnail
+    thumbnails = generate_thumbnails(pdf=resume_bytes)
+    thumbnail_bytes = convert_img_to_bytes(thumbnails[0])
+    thumbnail_url = upload_thumbnail(thumbnail_bytes, folder_id, resume_hash)
+
+    # upload resume file
+    resume_file_path = upload_resume_file(resume_bytes, folder_id, resume_hash)
+
     # save resume
     resume_request = ResumeRequest(
         resume_file_hash=resume_hash,
         resume_file_path=resume_file_path,
         resume_thumbnail_url=thumbnail_url,
-        folder_id=fodler_id,
+        folder_id=folder_id,
         job_title=resume_data.basicInfo.jobTitle,
         job_title_embedding=embedding(resume_data.basicInfo.jobTitle),
         summary_or_objectives=resume_data.basicInfo.summaryOrObjectives,
