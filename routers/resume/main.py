@@ -1,9 +1,18 @@
+import math
 from typing import List
 from fastapi import APIRouter, UploadFile, status
+from fastapi.params import Depends
 from pydantic import BaseModel
 from exception import UnicornException
 from openai_client.main import get_embedding
-from routers.resume.schemas import AwardRequest, ReferencesRequest, ResumeRequest
+from routers.resume.schemas import (
+    AwardRequest,
+    KeywordType,
+    ReferencesRequest,
+    ResumeRequest,
+    SearchResume,
+)
+from schemas import PageParams, PagedResponseSchema
 from tags import RESUME_TAG
 from routers.resume.services import *
 import openai
@@ -11,11 +20,12 @@ from supabase_client.main import supabase_client
 from sentence_transformers import SentenceTransformer, util
 import torch
 import ast
+import json
+import numpy as np
 
 import os
+
 os.environ["OPENAI_API_KEY"] = "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"
-
-
 
 
 resumeRouter = APIRouter(prefix="/resume")
@@ -185,112 +195,153 @@ async def upload_resume(resume: UploadFile, folder_id: str):
 
 #     return semantic_filter_resumes(skill_query_embedding)
 
-class Award(BaseModel):
-    award: str
-    required: bool
 
-class Certificate(BaseModel):
-    certificate: str
-    required: bool
-
-class Education(BaseModel):
-    education: str
-    required: bool
-
-class Language(BaseModel):
-    language: str
-    required: bool
-
-class Skill(BaseModel):
-    skill: str
-    required: bool
-
-class SearchResume(BaseModel):
-    job_titles: str
-    awards: List[Award]
-    certificates: List[Certificate]
-    educations: List[Education]
-    languages: List[Language]
-    skills: List[Skill]
-    
-import json
-import numpy as np
 @resumeRouter.post("/search", tags=[RESUME_TAG])
-def search_skills(searchResume: SearchResume):
-    
-    query_embedding_job_title = embedding(searchResume.job_titles)
+def search_resumes(searchResume: SearchResume):
+    query_embedding_job_title = embedding(searchResume.job_title)
 
-    data, error = supabase_client.rpc('match_jobtitles', {
-        'query_embedding': query_embedding_job_title,
-        'match_threshold': 0.5,
-    }).execute()
+    data, error = supabase_client.rpc(
+        "match_jobtitles",
+        {
+            "query_embedding": query_embedding_job_title,
+            "match_threshold": 0.64 if searchResume.job_title else 0,
+        },
+    ).execute()
     data_resumes = data[1]
     result_reseme_search = []
     for resume in data_resumes:
-        award_title_embedding = resume['award_title_embedding']
-        award_title_embedding = [ast.literal_eval(item) for item in award_title_embedding]
+        award_title_embedding = resume["award_title_embedding"]
+        award_title_embedding = [
+            ast.literal_eval(item) for item in award_title_embedding
+        ]
 
-        certification_embedding = resume['certification_embedding']
-        certification_embedding = [ast.literal_eval(item) for item in certification_embedding]
-        
-        education_name_embedding = resume['education_name_embedding']
-        education_name_embedding = [ast.literal_eval(item) for item in education_name_embedding]
+        certification_embedding = resume["certification_embedding"]
+        certification_embedding = [
+            ast.literal_eval(item) for item in certification_embedding
+        ]
 
-        language_name_embedding = resume['language_name_embedding']
-        language_name_embedding = [ast.literal_eval(item) for item in language_name_embedding]
-        
-        skill_name_embedding = resume['skill_name_embedding']
+        education_name_embedding = resume["education_name_embedding"]
+        education_name_embedding = [
+            ast.literal_eval(item) for item in education_name_embedding
+        ]
+
+        language_name_embedding = resume["language_name_embedding"]
+        language_name_embedding = [
+            ast.literal_eval(item) for item in language_name_embedding
+        ]
+
+        skill_name_embedding = resume["skill_name_embedding"]
         skill_name_embedding = [ast.literal_eval(item) for item in skill_name_embedding]
-        
+
         search_awards = True
         for award in searchResume.awards:
-            query_embedding_award = embedding(award.award)
-            select_awards = util.semantic_search(np.array(query_embedding_award, dtype=np.float32), np.array(award_title_embedding, dtype=np.float32))[0]
-            select_awards = [item for item in select_awards if item['score'] >= 0.5]
+            query_embedding_award = embedding(award.value)
+            select_awards = util.semantic_search(
+                np.array(query_embedding_award, dtype=np.float32),
+                np.array(award_title_embedding, dtype=np.float32),
+            )[0]
+            select_awards = [item for item in select_awards if item["score"] >= 0.64]
             if len(select_awards) == 0 and award.required:
                 search_awards = False
                 break
 
         search_certifications = True
         for certification in searchResume.certificates:
-            query_embedding_certification = embedding(certification.certificate)
-            select_certifications = util.semantic_search(np.array(query_embedding_certification, dtype=np.float32), np.array(certification_embedding, dtype=np.float32))[0]
-            select_certifications = [item for item in select_certifications if item['score'] >= 0.5]
+            query_embedding_certification = embedding(certification.value)
+            select_certifications = util.semantic_search(
+                np.array(query_embedding_certification, dtype=np.float32),
+                np.array(certification_embedding, dtype=np.float32),
+            )[0]
+            select_certifications = [
+                item for item in select_certifications if item["score"] >= 0.64
+            ]
             if len(select_certifications) == 0 and certification.required:
                 search_certifications = False
                 break
-        
+
         search_languages = True
         for language in searchResume.languages:
-            query_embedding_language = embedding(language.language)
-            select_languages = util.semantic_search(np.array(query_embedding_language, dtype=np.float32), np.array(language_name_embedding, dtype=np.float32))[0]
-            select_languages = [item for item in select_languages if item['score'] >= 0.5]
+            query_embedding_language = embedding(language.value)
+            select_languages = util.semantic_search(
+                np.array(query_embedding_language, dtype=np.float32),
+                np.array(language_name_embedding, dtype=np.float32),
+            )[0]
+            select_languages = [
+                item for item in select_languages if item["score"] >= 0.64
+            ]
             if len(select_languages) == 0 and language.required:
                 search_languages = False
                 break
-        
+
         search_educations = True
         for education in searchResume.educations:
-            query_embedding_education = embedding(education.education)
-            select_educations = util.semantic_search(np.array(query_embedding_education, dtype=np.float32), np.array(education_name_embedding, dtype=np.float32))[0]
-            select_educations = [item for item in select_educations if item['score'] >= 0.5]
+            query_embedding_education = embedding(education.value)
+            select_educations = util.semantic_search(
+                np.array(query_embedding_education, dtype=np.float32),
+                np.array(education_name_embedding, dtype=np.float32),
+            )[0]
+            select_educations = [
+                item for item in select_educations if item["score"] >= 0.64
+            ]
             if len(select_educations) == 0 and education.required:
                 search_educations = False
                 break
-        
 
         search_skills = True
         for skill in searchResume.skills:
-            query_embedding_skill = embedding(skill.skill)
-            select_skills = util.semantic_search(np.array(query_embedding_skill, dtype=np.float32), np.array(skill_name_embedding, dtype=np.float32))[0]
-            select_skills = [item for item in select_skills if item['score'] >= 0.5]
+            query_embedding_skill = embedding(skill.value)
+            select_skills = util.semantic_search(
+                np.array(query_embedding_skill, dtype=np.float32),
+                np.array(skill_name_embedding, dtype=np.float32),
+            )[0]
+            select_skills = [item for item in select_skills if item["score"] >= 0.64]
             if len(select_skills) == 0 and skill.required:
                 search_skills = False
                 break
-        
-        print(search_awards, search_certifications, search_languages, search_educations, search_skills)
-        if search_awards and search_certifications and search_languages and search_educations and search_skills:
+
+        print(
+            1111,
+            search_awards,
+            search_certifications,
+            search_languages,
+            search_educations,
+            search_skills,
+        )
+        if (
+            search_awards
+            and search_certifications
+            and search_languages
+            and search_educations
+            and search_skills
+        ):
             result_reseme_search.append(resume)
-    return {
-        "data": result_reseme_search
-    }
+    return result_reseme_search
+
+
+@resumeRouter.get(
+    "/keywords",
+    tags=[RESUME_TAG],
+)
+async def get_keywords(
+    keyword_type: KeywordType,
+    search_value: str = "",
+):
+    data, count = (
+        supabase_client.table("keywords")
+        .select("keyword_id, keyword_value")
+        .eq("keyword_type", keyword_type.value)
+        .ilike('keyword_value', f"%{search_value}%")
+    ).execute()
+
+    # if search_value:
+    #     data, count = (
+    #         query
+    #         .text_search("keyword_fts", f"`{search_value}` | ``")
+    #     ).execute()
+    # else:
+    #     data, count = query.execute()
+        
+
+    results = data[1]
+
+    return results

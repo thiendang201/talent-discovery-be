@@ -1,4 +1,5 @@
 from datetime import date as Date
+from enum import Enum
 from typing import List
 from pydantic import BaseModel
 
@@ -137,3 +138,23 @@ class WorkExperienceRequest(BaseModel):
     company_name: str | None = None
     start_date: str | None = None
     end_date: str | None = None
+
+class KeywordType(str, Enum):
+    JOB_TITLE = 'job_title',
+    SKILL = 'skill',
+    LANGUAGE = 'language',
+    AWARD = 'award',
+    CERTIFICATION = 'certification',
+    EDUCATION = 'education'
+
+class KeywordOption(BaseModel):
+    value: str
+    required: bool
+
+class SearchResume(BaseModel):
+    job_title: str
+    awards: List[KeywordOption]
+    certificates: List[KeywordOption]
+    educations: List[KeywordOption]
+    languages: List[KeywordOption]
+    skills: List[KeywordOption]
