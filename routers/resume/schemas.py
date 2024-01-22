@@ -152,6 +152,7 @@ class KeywordOption(BaseModel):
     required: bool
 
 class SearchResume(BaseModel):
+    folder_id: str
     job_title: str
     awards: List[KeywordOption]
     certificates: List[KeywordOption]

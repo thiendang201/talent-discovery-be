@@ -22,10 +22,13 @@ import torch
 import ast
 import json
 import numpy as np
+from configs import env_configs
+from openai import OpenAI
 
-import os
 
-os.environ["OPENAI_API_KEY"] = "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"
+
+apiKey = env_configs.get("OPENAI_API_KEY")
+client = OpenAI(api_key=apiKey)
 
 
 resumeRouter = APIRouter(prefix="/resume")
@@ -205,10 +208,11 @@ def search_resumes(searchResume: SearchResume):
         {
             "query_embedding": query_embedding_job_title,
             "match_threshold": 0.64 if searchResume.job_title else 0,
+            "id_folder": searchResume.folder_id,
         },
     ).execute()
     data_resumes = data[1]
-    result_reseme_search = []
+    result_resume_search = []
     for resume in data_resumes:
         award_title_embedding = resume["award_title_embedding"]
         award_title_embedding = [
@@ -314,9 +318,24 @@ def search_resumes(searchResume: SearchResume):
             and search_educations
             and search_skills
         ):
-            result_reseme_search.append(resume)
-    return result_reseme_search
+            result_resume_search.append(resume)
+    return result_resume_search
 
+@resumeRouter.post("/get_resume", tags=[RESUME_TAG])
+def get_resume(resume_id: str):
+    data, count = (
+    supabase_client.table(RESUME_TABLE_NAME)
+        .select("*", count="exact")
+        .eq("resume_id", resume_id)
+    ).execute()
+    data_resume = data[1][0]
+
+    storage = get_storage_bucket(RESUMES_BUCKET)
+    resume_url = storage.create_signed_url(data_resume['resume_file_path'], 3600*24)['signedURL']
+    return {
+        'data': data_resume,
+        'resume_url': resume_url
+    }
 
 @resumeRouter.get(
     "/keywords",
